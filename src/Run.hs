@@ -1,141 +1,190 @@
-{-# LANGUAGE CPP #-}
-module Run (
-  doctest
-#ifdef TEST
-, doctestWithOptions
-, Summary
-, expandDirs
-#endif
-) where
+module Run where
 
 import           Prelude ()
 import           Prelude.Compat
 
-import           Control.Monad (when, unless)
-import           System.Directory (doesFileExist, doesDirectoryExist, getDirectoryContents)
-import           System.Environment (getEnvironment)
-import           System.Exit (exitFailure, exitSuccess)
-import           System.FilePath ((</>), takeExtension)
+import           System.Process
 import           System.IO
-import           System.IO.CodePage (withCP65001)
-import           System.Process (rawSystem)
+import           GHC.Paths (ghc)
 
-import qualified Control.Exception as E
+-- To run:
+-- > cabal build all
+-- > cabal cabal exec doctest
 
-#if __GLASGOW_HASKELL__ < 900
-import           Panic
-#else
-import           GHC.Utils.Panic
-#endif
+-- Failure output (build with iWantStackOverFlow == True):
+-- stack overflow: use +RTS -K<size> to increase it
+-- Succeed output (build with iWantStackOverFlow == False):
+-- <Nothing, ie empty output>
 
-import           PackageDBs
-import           Parse
-import           Options
-import           Runner
-import qualified Interpreter
+iWantStackOverFlow :: Bool
+iWantStackOverFlow = False
 
--- | Run doctest with given list of arguments.
---
--- Example:
---
--- >>> doctest ["-iexample/src", "example/src/Example.hs"]
--- ...
--- Examples: 2  Tried: 2  Errors: 0  Failures: 0
---
--- This can be used to create a Cabal test suite that runs doctest for your
--- project.
---
--- If a directory is given, it is traversed to find all .hs and .lhs files
--- inside of it, ignoring hidden entries.
-doctest :: [String] -> IO ()
-doctest args0 = case parseOptions args0 of
-  RunGhc args -> rawSystem Interpreter.ghc args >>= E.throwIO
-  Output s -> putStr s
-  Result (Run warnings args_ magicMode fastMode preserveIt verbose) -> do
-    mapM_ (hPutStrLn stderr) warnings
-    hFlush stderr
+unitId :: String
+unitId = if iWantStackOverFlow then "doctest-0.20.0-inplace" else "doctest-0.20.0-inplace2"
 
-    i <- Interpreter.interpreterSupported
-    unless i $ do
-      hPutStrLn stderr "WARNING: GHC does not support --interactive, skipping tests"
-      exitSuccess
+args94 :: [String]
+args94 = [
+  "--interactive",
+  -- "-outputdir",
+  -- "/Users/elliotmarsden/elmo/src/doctest/dist-newstyle/build/aarch64-osx/ghc-9.4.2/doctest-0.20.0/build",
+  -- "-odir",
+  -- "/Users/elliotmarsden/elmo/src/doctest/dist-newstyle/build/aarch64-osx/ghc-9.4.2/doctest-0.20.0/build",
+  -- "-hidir",
+  -- "/Users/elliotmarsden/elmo/src/doctest/dist-newstyle/build/aarch64-osx/ghc-9.4.2/doctest-0.20.0/build",
+  -- "-stubdir",
+  -- "/Users/elliotmarsden/elmo/src/doctest/dist-newstyle/build/aarch64-osx/ghc-9.4.2/doctest-0.20.0/build",
+  -- "-i",
+  -- "-i/Users/elliotmarsden/elmo/src/doctest/dist-newstyle/build/aarch64-osx/ghc-9.4.2/doctest-0.20.0/build",
+  -- "-isrc",
+  -- "-ighci-wrapper/src",
+  -- "-i/Users/elliotmarsden/elmo/src/doctest/dist-newstyle/build/aarch64-osx/ghc-9.4.2/doctest-0.20.0/build/autogen",
+  -- "-i/Users/elliotmarsden/elmo/src/doctest/dist-newstyle/build/aarch64-osx/ghc-9.4.2/doctest-0.20.0/build/global-autogen",
+  -- "-I/Users/elliotmarsden/elmo/src/doctest/dist-newstyle/build/aarch64-osx/ghc-9.4.2/doctest-0.20.0/build/autogen",
+  -- "-I/Users/elliotmarsden/elmo/src/doctest/dist-newstyle/build/aarch64-osx/ghc-9.4.2/doctest-0.20.0/build/global-autogen",
+  -- "-I/Users/elliotmarsden/elmo/src/doctest/dist-newstyle/build/aarch64-osx/ghc-9.4.2/doctest-0.20.0/build",
+  -- "-optP-include",
+  -- "-optP/Users/elliotmarsden/elmo/src/doctest/dist-newstyle/build/aarch64-osx/ghc-9.4.2/doctest-0.20.0/build/autogen/cabal_macros.h",
+  "-this-unit-id",
+  unitId,
+  -- "-hide-all-packages",
+  -- "-Wmissing-home-modules",
+  -- "-no-user-package-db",
+  -- "-package-db",
+  -- "/Users/elliotmarsden/.cabal/store/ghc-9.4.2/package.db",
+  -- "-package-db",
+  -- "/Users/elliotmarsden/elmo/src/doctest/dist-newstyle/packagedb/ghc-9.4.2",
+  -- "-package-db",
+  -- "/Users/elliotmarsden/elmo/src/doctest/dist-newstyle/build/aarch64-osx/ghc-9.4.2/doctest-0.20.0/package.conf.inplace",
+  -- "-package-id",
+  -- "base-4.17.0.0",
+  -- "-package-id",
+  -- "bs-cmpt-0.12.2-8fd4002e",
+  -- "-package-id",
+  -- "cd-pg-0.2.1-8aaba962",
+  -- "-package-id",
+  -- "deepseq-1.4.8.0",
+  -- "-package-id",
+  -- "directory-1.3.7.1",
+  -- "-package-id",
+  -- "exceptions-0.10.5",
+  -- "-package-id",
+  -- "filepath-1.4.2.2",
+  -- "-package-id",
+  -- "ghc-9.4.2",
+  -- "-package-id",
+  -- "ghc-pths-0.1.0.12-0baed1dd",
+  -- "-package-id",
+  -- "process-1.6.15.0",
+  -- "-package-id",
+  -- "syb-0.7.2.2-c8583bf9",
+  -- "-package-id",
+  -- "transformers-0.5.6.2",
+  -- "-XHaskell2010",
+  -- "Test.DocTest"
+  "Extract"
+  -- "GhcUtil",
+  -- "Info",
+  -- "Interpreter",
+  -- "Location",
+  -- "Options",
+  -- "PackageDBs",
+  -- "Parse",
+  -- "Property",
+  -- "Run",
+  -- "Runner",
+  -- "Runner.Example",
+  -- "Util",
+  -- "Language.Haskell.GhciWrapper",
+  -- "Paths_doctest",
+  -- "-Wall",
+  -- "-hide-all-packages"
+  ]
 
-    args <- case magicMode of
-      False -> return args_
-      True -> do
-        expandedArgs <- concat <$> mapM expandDirs args_
-        packageDBArgs <- getPackageDBArgs
-        addDistArgs <- getAddDistArgs
-        return (addDistArgs $ packageDBArgs ++ expandedArgs)
+args92 :: [String]
+args92 = [
+  "--interactive",
+  "-fbuilding-cabal-package",
+  "-O0",
+  "-outputdir",
+  "/Users/elliotmarsden/elmo/src/doctest/dist-newstyle/build/aarch64-osx/ghc-9.2.4/doctest-0.20.0/build",
+  "-odir",
+  "/Users/elliotmarsden/elmo/src/doctest/dist-newstyle/build/aarch64-osx/ghc-9.2.4/doctest-0.20.0/build",
+  "-hidir",
+  "/Users/elliotmarsden/elmo/src/doctest/dist-newstyle/build/aarch64-osx/ghc-9.2.4/doctest-0.20.0/build",
+  "-stubdir",
+  "/Users/elliotmarsden/elmo/src/doctest/dist-newstyle/build/aarch64-osx/ghc-9.2.4/doctest-0.20.0/build",
+  "-i",
+  "-i/Users/elliotmarsden/elmo/src/doctest/dist-newstyle/build/aarch64-osx/ghc-9.2.4/doctest-0.20.0/build",
+  "-isrc",
+  "-ighci-wrapper/src",
+  "-i/Users/elliotmarsden/elmo/src/doctest/dist-newstyle/build/aarch64-osx/ghc-9.2.4/doctest-0.20.0/build/autogen",
+  "-i/Users/elliotmarsden/elmo/src/doctest/dist-newstyle/build/aarch64-osx/ghc-9.2.4/doctest-0.20.0/build/global-autogen",
+  "-I/Users/elliotmarsden/elmo/src/doctest/dist-newstyle/build/aarch64-osx/ghc-9.2.4/doctest-0.20.0/build/autogen",
+  "-I/Users/elliotmarsden/elmo/src/doctest/dist-newstyle/build/aarch64-osx/ghc-9.2.4/doctest-0.20.0/build/global-autogen",
+  "-I/Users/elliotmarsden/elmo/src/doctest/dist-newstyle/build/aarch64-osx/ghc-9.2.4/doctest-0.20.0/build",
+  "-optP-include",
+  "-optP/Users/elliotmarsden/elmo/src/doctest/dist-newstyle/build/aarch64-osx/ghc-9.2.4/doctest-0.20.0/build/autogen/cabal_macros.h",
+  "-this-unit-id",
+  "doctest-0.20.0-inplace",
+  "-hide-all-packages",
+  "-Wmissing-home-modules",
+  "-no-user-package-db",
+  "-package-db",
+  "/Users/elliotmarsden/.cabal/store/ghc-9.2.4/package.db",
+  "-package-db",
+  "/Users/elliotmarsden/elmo/src/doctest/dist-newstyle/packagedb/ghc-9.2.4",
+  "-package-db",
+  "/Users/elliotmarsden/elmo/src/doctest/dist-newstyle/build/aarch64-osx/ghc-9.2.4/doctest-0.20.0/package.conf.inplace",
+  "-package-id",
+  "base-4.16.3.0",
+  "-package-id",
+  "bs-cmpt-0.12.2-0e908c20",
+  "-package-id",
+  "cd-pg-0.2.1-e85f959f",
+  "-package-id",
+  "deepseq-1.4.6.1",
+  "-package-id",
+  "directory-1.3.6.2",
+  "-package-id",
+  "exceptions-0.10.4",
+  "-package-id",
+  "filepath-1.4.2.2",
+  "-package-id",
+  "ghc-9.2.4",
+  "-package-id",
+  "ghc-pths-0.1.0.12-43363e88",
+  "-package-id",
+  "process-1.6.13.2",
+  "-package-id",
+  "syb-0.7.2.2-e7dd2b23",
+  "-package-id",
+  "transformers-0.5.6.2",
+  "-XHaskell2010",
+  "Test.DocTest",
+  "Extract",
+  "GhcUtil",
+  "Info",
+  "Interpreter",
+  "Location",
+  "Options",
+  "PackageDBs",
+  "Parse",
+  "Property",
+  "Run",
+  "Runner",
+  "Runner.Example",
+  "Util",
+  "Language.Haskell.GhciWrapper",
+  "Paths_doctest",
+  "-Wall",
+  "-hide-all-packages"
+  ]
 
-    r <- doctestWithOptions fastMode preserveIt verbose args `E.catch` \e -> do
-      case fromException e of
-        Just (UsageError err) -> do
-          hPutStrLn stderr ("doctest: " ++ err)
-          hPutStrLn stderr "Try `doctest --help' for more information."
-          exitFailure
-        _ -> E.throwIO e
-    when (not $ isSuccess r) exitFailure
-
--- | Expand a reference to a directory to all .hs and .lhs files within it.
-expandDirs :: String -> IO [String]
-expandDirs fp0 = do
-    isDir <- doesDirectoryExist fp0
-    if isDir
-        then findHaskellFiles fp0
-        else return [fp0]
-  where
-    findHaskellFiles dir = do
-        contents <- getDirectoryContents dir
-        concat <$> mapM go (filter (not . hidden) contents)
-      where
-        go name = do
-            isDir <- doesDirectoryExist fp
-            if isDir
-                then findHaskellFiles fp
-                else if isHaskellFile fp
-                        then return [fp]
-                        else return []
-          where
-            fp = dir </> name
-
-    hidden ('.':_) = True
-    hidden _ = False
-
-    isHaskellFile fp = takeExtension fp `elem` [".hs", ".lhs"]
-
--- | Get the necessary arguments to add the @cabal_macros.h@ file and autogen
--- directory, if present.
-getAddDistArgs :: IO ([String] -> [String])
-getAddDistArgs = do
-    env <- getEnvironment
-    let dist =
-            case lookup "HASKELL_DIST_DIR" env of
-                Nothing -> "dist"
-                Just x -> x
-        autogen = dist ++ "/build/autogen/"
-        cabalMacros = autogen ++ "cabal_macros.h"
-
-    dirExists <- doesDirectoryExist autogen
-    if dirExists
-        then do
-            fileExists <- doesFileExist cabalMacros
-            return $ \rest ->
-                  concat ["-i", dist, "/build/autogen/"]
-                : "-optP-include"
-                : (if fileExists
-                    then (concat ["-optP", dist, "/build/autogen/cabal_macros.h"]:)
-                    else id) rest
-        else return id
-
-isSuccess :: Summary -> Bool
-isSuccess s = sErrors s == 0 && sFailures s == 0
-
-doctestWithOptions :: Bool -> Bool -> Bool -> [String] -> IO Summary
-doctestWithOptions fastMode preserveIt verbose args = do
-
-  -- get examples from Haddock comments
-  modules <- getDocTests args
-
-  Interpreter.withInterpreter args $ \repl -> withCP65001 $ do
-    runModules fastMode preserveIt verbose repl modules
+foo :: IO ()
+foo = do
+  (Just _stdin_, Just _stdout_, Nothing, processHandle ) <-
+    createProcess $ (proc ghc args94) {std_in = CreatePipe, std_out = CreatePipe, std_err = Inherit}
+  hClose $ _stdin_
+  _e <- waitForProcess processHandle
+  hClose $ _stdout_
+  pure ()

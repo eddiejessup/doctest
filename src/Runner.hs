@@ -11,7 +11,7 @@ module Runner (
 #endif
 ) where
 
-import           Prelude hiding (putStr, putStrLn, error)
+import           Prelude hiding (putStr, error)
 
 import           Control.Monad hiding (forM_)
 import           Text.Printf (printf)
@@ -27,6 +27,7 @@ import           Parse
 import           Location
 import           Property
 import           Runner.Example
+import           Data.Maybe (fromMaybe)
 
 -- | Summary of a test run.
 data Summary = Summary {
@@ -63,6 +64,7 @@ runModules fastMode preserveIt verbose repl modules = do
     verboseReport "# Final summary:"
     gets (show . reportStateSummary) >>= report
 
+  putStrLn "&& end of runModules"
   return s
   where
     c = (sum . map count) modules
@@ -114,6 +116,8 @@ runModule :: Bool -> Bool -> Interpreter -> Module [Located DocTest] -> Report (
 runModule fastMode preserveIt repl (Module module_ setup examples) = do
 
   Summary _ _ e0 f0 <- gets reportStateSummary
+  liftIO $ putStrLn $ "^ setup: " <> show (length (fromMaybe [] setup))
+  liftIO $ putStrLn $ "^ examples: " <> show (length (fromMaybe [] setup))
 
   forM_ setup $
     runTestGroup preserveIt repl reload
@@ -122,8 +126,10 @@ runModule fastMode preserveIt repl (Module module_ setup examples) = do
 
   -- only run tests, if setup does not produce any errors/failures
   when (e0 == e1 && f0 == f1) $
-    forM_ examples $
-      runTestGroup preserveIt repl setup_
+    forM_ examples $ \x -> do
+      liftIO $ putStrLn $ "^ single example, n tests: " <> show (length x)
+      runTestGroup preserveIt repl setup_ x
+      liftIO $ putStrLn $ "^ done single example"
   where
     reload :: IO ()
     reload = do
@@ -195,7 +201,7 @@ runTestGroup preserveIt repl setup tests = do
   reportProgress
 
   liftIO setup
-  runExampleGroup preserveIt repl examples
+  -- runExampleGroup preserveIt repl examples
 
   forM_ properties $ \(loc, expression) -> do
     r <- do

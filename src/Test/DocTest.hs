@@ -1,5 +1,5 @@
 module Test.DocTest (
-  doctest
+  foo
 ) where
 
 import           Run
